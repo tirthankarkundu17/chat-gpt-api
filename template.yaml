@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  chat-gpt-api
+
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  ChatGPTFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: pkg/
+      Handler: pkg
+      Runtime: go1.x
+      Architectures:
+        - x86_64
+      Events:
+        CatchAll:
+          Type: Api
+          Properties:
+            Path: /converse
+            Method: POST
+      Environment:
+        Variables:
+          CHAT_GPT_TOKEN: <CHAT_GPT_TOKEN>
+
+Outputs:
+  ChatGPTAPI:
+    Description: "API Gateway endpoint URL for Prod environment for First Function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  ChatGPTFunction:
+    Description: "First Lambda Function ARN"
+    Value: !GetAtt ChatGPTFunction.Arn
+  ChatGPTFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt ChatGPTFunction.Arn
