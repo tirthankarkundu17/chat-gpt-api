@@ -1,7 +1,10 @@
-# chat-gpt-api
+# Chat GPT API
 Serverless Go based Chat GPT API
 
-### Local development and Testing
+# Blog
+Detailed Blog post can be found [here](https://bitmaskers.in/serverless-chat-gpt-api-in-go/)
+
+# Local development and Testing
 
 **Invoking function locally through local API Gateway**
 
