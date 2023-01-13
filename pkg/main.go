@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type TextCompletionRequest struct {
@@ -62,16 +63,10 @@ var (
 	BearerToken = os.Getenv("CHAT_GPT_TOKEN")
 )
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-
-	var apiRequest APIRequest
-	if err := json.Unmarshal([]byte(request.Body), &apiRequest); err != nil { // Parse []byte to go struct pointer
-		fmt.Println("Can not unmarshal JSON")
-	}
-
+func ConverseWithGPT(prompt string) (TextCompletionResponse, error) {
 	httpReq := TextCompletionRequest{
 		Model:            "text-davinci-003",
-		Prompt:           apiRequest.Prompt,
+		Prompt:           prompt,
 		Temperature:      0.7,
 		MaxTokens:        100,
 		TopP:             1.0,
@@ -82,27 +77,24 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 
 	bearer := "Bearer " + BearerToken
 
-	req, err := http.NewRequest("POST", ChatGPTHTTPAddress, bytes.NewBuffer(jsonValue))
-	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
-	}
+	req, _ := http.NewRequest("POST", ChatGPTHTTPAddress, bytes.NewBuffer(jsonValue))
 	req.Header.Set("Authorization", bearer)
 	req.Header.Add("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
+		return TextCompletionResponse{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return events.APIGatewayProxyResponse{}, ErrNon200Response
+		return TextCompletionResponse{}, ErrNon200Response
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
+		return TextCompletionResponse{}, err
 	}
 
 	var textCompletionResponse TextCompletionResponse
@@ -110,8 +102,22 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		fmt.Println("Can not unmarshal JSON")
 	}
 
-	var choices = textCompletionResponse.Choices
+	return textCompletionResponse, nil
+}
 
+func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+
+	var apiRequest APIRequest
+	if err := json.Unmarshal([]byte(request.Body), &apiRequest); err != nil { // Parse []byte to go struct pointer
+		fmt.Println("Can not unmarshal JSON")
+	}
+
+	textCompletionResponse, err := ConverseWithGPT(apiRequest.Prompt)
+
+	if err != nil {
+		return events.APIGatewayProxyResponse{}, err
+	}
+	var choices = textCompletionResponse.Choices
 	response := APIResponse{
 		Status: "Success",
 		Data:   &choices,
